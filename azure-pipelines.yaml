@@ -1,0 +1,168 @@
+trigger:
+  branches:
+    include:
+      - dev
+      - main
+
+stages:
+  - stage: Lint
+    displayName: Lint Stage
+    jobs:
+      - job: LintJob
+        pool:
+          #  vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Running lint checks..."
+              # Replace  with the appropriate lint command for your project
+              sudo chmod +x ./gradlew
+              ./gradlew checkstyleMain checkstyleTest
+            displayName: 'Run Lint Checks'
+
+  - stage: UnitTest
+    displayName: Unit Test Stage
+    dependsOn: Lint
+    jobs:
+      - job: UnitTestJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Running unit tests..."
+              sudo chmod +x ./gradlew
+              ./gradlew test
+            displayName: 'Run Unit Tests'
+
+  - stage: SonarQube
+    displayName: SonarQube Stage
+    dependsOn: UnitTest
+    jobs:
+      - job: SonarQubeJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - task: SonarQubePrepare@4
+            inputs:
+              SonarQube: 'SonarQubeServiceEndpoint'
+              scannerMode: 'CLI'
+              configMode: 'manual'
+              cliProjectKey: 'test_test_AZG3zc3AelO5QjdSCneY'
+              cliProjectName: test'
+          - script: |
+              sudo chmod +x ./gradlew
+              ./gradlew sonarqube
+            displayName: 'Run SonarQube Analysis'
+
+  - stage: BuildImage
+    displayName: Build Image Stage
+    # dependsOn: SonarQube
+    jobs:
+      - job: BuildImageJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerHubServiceConnection'
+              repository: 'azi1iz/bm-task'
+              command: 'build'
+              Dockerfile: '**/dockerfile'
+              tags: '$(Build.BuildId)'
+            displayName: 'Build Docker Image'
+
+  - stage: PushImage
+    displayName: Push Image to Registry
+    dependsOn: BuildImage
+    jobs:
+      - job: PushImageJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerHubServiceConnection'
+              repository: 'azi1iz/bm-task'
+              command: 'push'
+              tags: '$(Build.BuildId)'
+            displayName: 'Push Docker Image to Registry'
+
+  - stage: PullImage
+    displayName: Pull Image from Registry
+    dependsOn: PushImage
+    jobs:
+      - job: PullImageJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              docker pull azi1iz/bm-task:$(Build.BuildId)
+            displayName: 'Pull Docker Image from Registry'
+
+  - stage: DeployToK8s
+    displayName: Deploy to Kubernetes Cluster
+    dependsOn: PullImage
+    jobs:
+      - job: DeployToK8sJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Deploying to Kubernetes..."
+              
+              kubectl apply -f k8s/deployment.yaml 
+              kubectl apply -f k8s/service.yaml 
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId)
+            displayName: 'Deploy to Kubernetes'
+
+  - stage: CreateIngress
+    displayName: Create Ingress
+    dependsOn: DeployToK8s
+    jobs:
+      - job: CreateIngressJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Creating Ingress..."
+              kubectl apply -f k8s/ingress.yaml 
+            displayName: 'Create Ingress for Application'
+
+  - stage: DeployDevEnv
+    displayName: Deploy on Development Environment
+    dependsOn: CreateIngress
+    jobs:
+      - job: DeployDevEnvJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Deploying to Development Environment..."
+              kubectl apply -f k8s/deployment.yaml --namespace dev
+              kubectl apply -f k8s/service.yaml --namespace dev
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId) --namespace dev
+            displayName: 'Deploy to Development Environment'
+
+  - stage: DeployProdEnv
+    displayName: Deploy on Production Environment
+    dependsOn: DeployDevEnv
+    jobs:
+      - job: DeployProdEnvJob
+        pool:
+          # vmImage: 'ubuntu-latest'
+          name: aziz
+        steps:
+          - script: |
+              echo "Deploying to Production Environment..."
+              kubectl apply -f k8s/deployment.yaml --namespace prod
+              kubectl apply -f k8s/service.yaml --namespace prod
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId) --namespace prod
+            displayName: 'Deploy to Production Environment'
