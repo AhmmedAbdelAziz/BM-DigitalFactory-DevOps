@@ -13,7 +13,7 @@
 
 ## Introduction
 
-This repository contains my solution to the DevOps Engineer hiring challenge. The task involves dockerizing a Spring Boot application and implementing a comprehensive CI/CD pipeline to deploy it on a Kubernetes cluster. This README provides an overview of my approach, implementation details, and instructions for running the solution.
+This repository contains my solution to the DevOps Engineer hiring challenge. The task involves dockerizing a Spring Boot application and implementing a comprehensive CI/CD pipeline to deploy it on a Kubernetes cluster. This README provides an overview of my approach, implementation details, and instructions for running the solution. 
 
 ## Challenge Overview
 
