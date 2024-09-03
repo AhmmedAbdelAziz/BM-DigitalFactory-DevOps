@@ -11,7 +11,7 @@ stages:
       - job: LintJob
         pool:
           #  vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Running lint checks..."
@@ -27,7 +27,7 @@ stages:
       - job: UnitTestJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Running unit tests..."
@@ -42,7 +42,7 @@ stages:
       - job: SonarQubeJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - task: SonarQubePrepare@4
             inputs:
@@ -63,12 +63,12 @@ stages:
       - job: BuildImageJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubServiceConnection'
-              repository: 'amrosy2020/bm'
+              repository: 'azi1iz/bm-task'
               command: 'build'
               Dockerfile: '**/dockerfile'
               tags: '$(Build.BuildId)'
@@ -81,12 +81,12 @@ stages:
       - job: PushImageJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubServiceConnection'
-              repository: 'amrosy2020/bm'
+              repository: 'azi1iz/bm-task'
               command: 'push'
               tags: '$(Build.BuildId)'
             displayName: 'Push Docker Image to Registry'
@@ -98,10 +98,10 @@ stages:
       - job: PullImageJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
-              docker pull amrosy2020/bm:$(Build.BuildId)
+              docker pull azi1iz/bm-task:$(Build.BuildId)
             displayName: 'Pull Docker Image from Registry'
 
   - stage: DeployToK8s
@@ -111,14 +111,14 @@ stages:
       - job: DeployToK8sJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Deploying to Kubernetes..."
               
               kubectl apply -f k8s/deployment.yaml 
               kubectl apply -f k8s/service.yaml 
-              kubectl set image deployment/spring-boot-app spring-boot-app=amrosy2020/bm:$(Build.BuildId)
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId)
             displayName: 'Deploy to Kubernetes'
 
   - stage: CreateIngress
@@ -128,7 +128,7 @@ stages:
       - job: CreateIngressJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Creating Ingress..."
@@ -142,13 +142,13 @@ stages:
       - job: DeployDevEnvJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Deploying to Development Environment..."
               kubectl apply -f k8s/deployment.yaml --namespace dev
               kubectl apply -f k8s/service.yaml --namespace dev
-              kubectl set image deployment/spring-boot-app spring-boot-app=amrosy2020/bm:$(Build.BuildId) --namespace dev
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId) --namespace dev
             displayName: 'Deploy to Development Environment'
 
   - stage: DeployProdEnv
@@ -158,11 +158,11 @@ stages:
       - job: DeployProdEnvJob
         pool:
           # vmImage: 'ubuntu-latest'
-          name: amr
+          name: aziz
         steps:
           - script: |
               echo "Deploying to Production Environment..."
               kubectl apply -f k8s/deployment.yaml --namespace prod
               kubectl apply -f k8s/service.yaml --namespace prod
-              kubectl set image deployment/spring-boot-app spring-boot-app=amrosy2020/bm:$(Build.BuildId) --namespace prod
+              kubectl set image deployment/spring-boot-app spring-boot-app=azi1iz/bm-task:$(Build.BuildId) --namespace prod
             displayName: 'Deploy to Production Environment'
