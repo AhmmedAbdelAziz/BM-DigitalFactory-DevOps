@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: spring-boot-app
-          image: amrosy2020/bm  # Replace with your image registry and name
+          image: aziz2020/bm  # Replace with your image registry and name
           ports:
             - containerPort: 8080  # Application port
 
